@@ -1,8 +1,12 @@
 ---
 title: Activity class prediction for the Human Activity Recognition data set 
-output: html_document
+output: 
+  html_document:
+    self_contained: true
+    lib_dir: deps
 ---
 
+```{r load_data}
 library(caret)
 
 set.seed(1111)
@@ -15,6 +19,7 @@ inTraining <- createDataPartition(y=data$classe, p=0.8, list=FALSE)
 
 training <- data[inTraining,]
 testing <- data[-inTraining,]
+```
 
 Wowo
 ====

@@ -1,2 +1,2 @@
-library("rmarkdown")
-render("writeup.Rmd")
+library("knitr")
+knit2html("writeup.Rmd")
