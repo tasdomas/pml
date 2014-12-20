@@ -98,3 +98,32 @@ accuracy <- data.frame(Model=c("CART", "Random Forest", "KNN"),
 ```{r echo=TRUE, results='asis'}
   kable(accuracy)
 ```
+
+Choosing a model
+================
+
+It's clear that the random forest predictor, at a 99.3% accuracy, shows the best results in
+predicting the HAL activity class, so that's what we're going to use for predicting the test set.
+
+```{r}
+plot(varImp(rf.model))
+```
+
+Predicting the test set
+=======================
+
+We already have the test set loaded and ready for prediction. All that needs to be done is to
+run the random forest model on that dataset and record the predictions.
+
+```{r}
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("results/problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+
+test.pred <- predict(rf.model, newdata=cleanTesting)
+pml_write_files(test.pred)
+```

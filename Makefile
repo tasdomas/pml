@@ -1,4 +1,5 @@
-render: data/pml-training.csv
+render: data
+	mkdir results
 	R CMD BATCH render.R
 
 data: data/pml-training.csv data/pml-testing.csv
