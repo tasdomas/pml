@@ -1,25 +1,100 @@
----
-title: Activity class prediction for the Human Activity Recognition data set 
-output: 
-  html_document:
-    self_contained: true
-    lib_dir: deps
----
+# Activity class prediction for the Human Activity Recognition data set 
+## Domas Monkus
+
+## Loading the data
+
+The dataset contains columns that have empty values. Since there's more than enough columns
+that are complete, we can get rid of the partially completed columns.
+First of all, lets load the data and get rid of columns with empty values.
+
+In addition to removing columns with empt values, we'll remove columns that aren't useful
+or relevant to the prediction model:
+  - "X"
+  - "user_name"               
+  - "raw_timestamp_part_1"
+  - "raw_timestamp_part_2"    
+  - "cvtd_timestamp"
+  - "new_window"              
+  - "num_window" 
 
 ```{r load_data}
 library(caret)
+library(doMC)
+registerDoMC(cores=2)
 
 set.seed(1111)
 
-data <- read.csv("data/pml-training.csv", header=TRUE)
+trainingRaw <- read.csv("data/pml-training.csv", header=TRUE, na.strings=c("NA", ""))
 
-data[-c(1:7, grep("kurtosis", names(data)), grep("skewness", names(data)))]
+fullColumns <- colSums(is.na(trainingRaw)) == 0
 
-inTraining <- createDataPartition(y=data$classe, p=0.8, list=FALSE)
+cleanTraining <- trainingRaw[,fullColumns]
+cleanTraining <- cleanTraining[,-c(1:7)]
 
-training <- data[inTraining,]
-testing <- data[-inTraining,]
+testingRaw <- read.csv("data/pml-testing.csv", header=TRUE, na.strings=c("NA", ""))
+cleanTesting <- testingRaw[,fullColumns]
+cleanTesting <- cleanTesting[,-c(1:7)]
 ```
 
-Wowo
-====
+Training and cross-validation subsets
+=====================================
+
+Now we will split the training dataset into training and cross-validation sets for checking
+the accuracy of the alternative machine learning methods:
+  - Classification and Regression Trees
+  - Random Forest
+  - Stochastic Gradient Boosting
+
+```{r}
+inTraining <- createDataPartition(y=cleanTraining$classe, p=0.7, list=FALSE)
+
+training <- cleanTraining[inTraining,]
+crossValidation <- cleanTraining[-inTraining,]
+```
+
+Setting up cross-validation
+===========================
+```{r}
+cv <- trainControl(method="cv", number=5)
+```
+
+Training CART models
+====================
+
+```{r}
+cart.model <- train(classe ~ ., method="rpart", data=training, trControl=cv)
+cart.predict <- predict(cart.model, newdata=crossValidation)
+cart.accuracy <- confusionMatrix(cart.predict, crossValidation$classe)$overall["Accuracy"]
+```
+
+Training RF models
+==================
+
+```{r}
+rf.model <- train(classe ~ ., method="rf", data=training, trControl=cv)
+rf.predict <- predict(rf.model, newdata=crossValidation)
+rf.accuracy <- confusionMatrix(rf.predict, crossValidation$classe)$overall["Accuracy"]
+```
+
+Training GBM models
+===================
+
+```{r}
+gbm.model <- train(classe ~ ., method="gbm", data=training, trControl=cv)
+gbm.predict <- predict(gbm.model, newdata=crossValidation)
+gbm.accuracy <- confusionMatrix(gbm.predict, crossValidation$classe)$overall["Accuracy"]
+```
+
+Comparing results
+=================
+
+```{r}
+accuracy <- data.frame(Model=c("CART", "Random Forest", "KNN"),
+	 Accuracy=c(round(cart.accuracy, 3),
+ 	 round(rf.accuracy, 3),
+ 	 round(gbm.accuracy, 3)))
+```
+
+```{r echo=TRUE, results='asis'}
+  kable(accuracy)
+```
